@@ -1,0 +1,4 @@
+[workspace]
+members = ["t-meter"]
+resolver = "2"
+

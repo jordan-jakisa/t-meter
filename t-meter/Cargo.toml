@@ -2,15 +2,16 @@
 name = "t-meter"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <you@example.com>"]
+authors = ["jordanjakisa <dev.jordanempire@gmail.com>"]
 license = "MIT"
 description = "A terminal-based day progress bar showing elapsed time and user markers"
-repository = "https://github.com/yourusername/t-meter"
+repository = "https://github.com/jordan-jakisa/t-meter"
 categories = ["command-line-utilities"]
 keywords = ["tui", "time", "productivity", "rust"]
 
 [dependencies]
 tui = "0.19"
+ratatui = { version = "0.30.0-beta.0", features = ["all-widgets"]}
 crossterm = "0.28"
 chrono = "0.4"
 serde = { version = "1", features = ["derive"] }

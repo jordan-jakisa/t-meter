@@ -1,0 +1,111 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    create-release:
+        name: Create Release
+        runs-on: ubuntu-latest
+        outputs:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+        steps:
+            - name: Create Release
+              id: create_release
+              uses: actions/create-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: ${{ github.ref }}
+                  release_name: Release ${{ github.ref }}
+                  draft: false
+                  prerelease: false
+
+    build:
+        name: Build ${{ matrix.platform.target }}
+        needs: create-release
+        runs-on: ${{ matrix.platform.os }}
+        strategy:
+            matrix:
+                platform:
+                    - os: ubuntu-latest
+                      target: x86_64-unknown-linux-gnu
+                      name: t-meter-x86_64-unknown-linux-gnu.tar.gz
+                    - os: ubuntu-latest
+                      target: x86_64-unknown-linux-musl
+                      name: t-meter-x86_64-unknown-linux-musl.tar.gz
+                    - os: macos-latest
+                      target: x86_64-apple-darwin
+                      name: t-meter-x86_64-apple-darwin.tar.gz
+                    - os: macos-latest
+                      target: aarch64-apple-darwin
+                      name: t-meter-aarch64-apple-darwin.tar.gz
+                    - os: windows-latest
+                      target: x86_64-pc-windows-msvc
+                      name: t-meter-x86_64-pc-windows-msvc.zip
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Setup Rust
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  target: ${{ matrix.platform.target }}
+                  override: true
+
+            - name: Install musl tools (Linux musl only)
+              if: matrix.platform.target == 'x86_64-unknown-linux-musl'
+              run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+            - name: Build
+              uses: actions-rs/cargo@v1
+              with:
+                  command: build
+                  args: --release --target ${{ matrix.platform.target }} --manifest-path t-meter/Cargo.toml
+
+            - name: Package (Unix)
+              if: matrix.platform.os != 'windows-latest'
+              run: |
+                  cd target/${{ matrix.platform.target }}/release
+                  tar czf ../../../${{ matrix.platform.name }} t-meter
+                  cd -
+
+            - name: Package (Windows)
+              if: matrix.platform.os == 'windows-latest'
+              run: |
+                  cd target/${{ matrix.platform.target }}/release
+                  7z a ../../../${{ matrix.platform.name }} t-meter.exe
+                  cd -
+
+            - name: Generate SHA256
+              run: |
+                  if [ "${{ matrix.platform.os }}" = "windows-latest" ]; then
+                    certutil -hashfile ${{ matrix.platform.name }} SHA256 > ${{ matrix.platform.name }}.sha256
+                  else
+                    shasum -a 256 ${{ matrix.platform.name }} > ${{ matrix.platform.name }}.sha256
+                  fi
+              shell: bash
+
+            - name: Upload Release Asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: ${{ needs.create-release.outputs.upload_url }}
+                  asset_path: ./${{ matrix.platform.name }}
+                  asset_name: ${{ matrix.platform.name }}
+                  asset_content_type: application/octet-stream
+
+            - name: Upload SHA256
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: ${{ needs.create-release.outputs.upload_url }}
+                  asset_path: ./${{ matrix.platform.name }}.sha256
+                  asset_name: ${{ matrix.platform.name }}.sha256
+                  asset_content_type: text/plain

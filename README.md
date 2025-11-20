@@ -27,12 +27,79 @@ Just leave it running in a corner of your screen. It's designed to be a peaceful
 -   **Take a breath**: Every hour, it shows you a new Zen quote to help you pause and reflect.
 -   **Find balance**: By seeing how much of your day is left, you can make better choices about how to spend it.
 
-## Give it a try
+## Installation
 
-To start it up, just run:
+### macOS / Linux (Homebrew)
+
+The easiest way to install on macOS or Linux:
 
 ```bash
-cargo run
+brew tap jordan-jakisa/tap
+brew install t-meter
+```
+
+Or in one command:
+
+```bash
+brew install jordan-jakisa/tap/t-meter
+```
+
+### Standalone Binary (All Platforms)
+
+Download the pre-built binary for your platform:
+
+#### macOS (Intel)
+
+```bash
+curl -L https://github.com/jordan-jakisa/t-meter/releases/latest/download/t-meter-x86_64-apple-darwin.tar.gz | tar xz
+sudo mv t-meter /usr/local/bin/
+```
+
+#### macOS (Apple Silicon)
+
+```bash
+curl -L https://github.com/jordan-jakisa/t-meter/releases/latest/download/t-meter-aarch64-apple-darwin.tar.gz | tar xz
+sudo mv t-meter /usr/local/bin/
+```
+
+#### Linux (x86_64)
+
+```bash
+curl -L https://github.com/jordan-jakisa/t-meter/releases/latest/download/t-meter-x86_64-unknown-linux-gnu.tar.gz | tar xz
+sudo mv t-meter /usr/local/bin/
+```
+
+#### Linux (musl)
+
+```bash
+curl -L https://github.com/jordan-jakisa/t-meter/releases/latest/download/t-meter-x86_64-unknown-linux-musl.tar.gz | tar xz
+sudo mv t-meter /usr/local/bin/
+```
+
+#### Windows (PowerShell)
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/jordan-jakisa/t-meter/releases/latest/download/t-meter-x86_64-pc-windows-msvc.zip" -OutFile "t-meter.zip"
+Expand-Archive -Path "t-meter.zip" -DestinationPath "."
+Move-Item -Path "t-meter.exe" -Destination "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\"
+```
+
+### From Source
+
+If you have Rust installed:
+
+```bash
+git clone https://github.com/jordan-jakisa/t-meter.git
+cd t-meter
+cargo install --path t-meter
+```
+
+## Usage
+
+Simply run:
+
+```bash
+t-meter
 ```
 
 When you're done, just press `q` or `Ctrl+c`.

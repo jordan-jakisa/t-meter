@@ -5,6 +5,29 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProgressBarStyle {
+    Gradient,
+    Grainy,
+    Analog,
+}
+
+impl ProgressBarStyle {
+    pub fn cycle(&self) -> Self {
+        match self {
+            ProgressBarStyle::Gradient => ProgressBarStyle::Grainy,
+            ProgressBarStyle::Grainy => ProgressBarStyle::Analog,
+            ProgressBarStyle::Analog => ProgressBarStyle::Gradient,
+        }
+    }
+}
+
+impl Default for ProgressBarStyle {
+    fn default() -> Self {
+        ProgressBarStyle::Gradient
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default = "default_theme_name")]
@@ -12,6 +35,15 @@ pub struct Config {
     
     #[serde(default = "default_theme_mode")]
     pub theme_mode: String,
+
+    #[serde(default)]
+    pub progress_bar_style: ProgressBarStyle,
+
+    #[serde(default = "default_wake_up_time")]
+    pub wake_up_time: String,
+
+    #[serde(default = "default_bed_time")]
+    pub bed_time: String,
 }
 
 fn default_theme_name() -> String {
@@ -22,11 +54,22 @@ fn default_theme_mode() -> String {
     "light".to_string()
 }
 
+fn default_wake_up_time() -> String {
+    "07:00".to_string()
+}
+
+fn default_bed_time() -> String {
+    "23:00".to_string()
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
             theme_name: default_theme_name(),
             theme_mode: default_theme_mode(),
+            progress_bar_style: ProgressBarStyle::default(),
+            wake_up_time: default_wake_up_time(),
+            bed_time: default_bed_time(),
         }
     }
 }
@@ -164,7 +207,10 @@ impl Config {
 # Available keyboard shortcuts while running t-meter:
 #   q or Ctrl+C  - Quit the application
 #   t            - Cycle through available themes
+#   q or Ctrl+C  - Quit the application
+#   t            - Cycle through available themes
 #   d            - Toggle between light and dark mode
+#   s            - Cycle through progress bar styles
 
 # =============================================================================
 # THEME CONFIGURATION
@@ -181,7 +227,28 @@ theme_name = "default"
 # Theme mode - Each theme has two modes:
 #   "light" - Light background optimized theme
 #   "dark"  - Dark background optimized theme
+#   "dark"  - Dark background optimized theme
 theme_mode = "light"
+
+# =============================================================================
+# PROGRESS BAR CONFIGURATION
+# =============================================================================
+
+# Style of the progress bar:
+#   "Gradient" - Smooth gradient transition (Premium look)
+#   "Grainy"   - Retro segmented look
+#   "Analog"   - Vertical bars simulating an analog meter
+progress_bar_style = "Gradient"
+
+# =============================================================================
+# SLEEP TRACKING
+# =============================================================================
+
+# Time you wake up (24-hour format HH:MM)
+wake_up_time = "07:00"
+
+# Time you go to bed (24-hour format HH:MM)
+bed_time = "23:00"
 
 # =============================================================================
 # CUSTOMIZATION GUIDE
@@ -190,7 +257,9 @@ theme_mode = "light"
 # 2. Edit the 'theme_mode' value to either 'light' or 'dark'
 # 3. Save this file and restart t-meter to see your changes
 # 4. Press 't' while running to cycle through themes interactively
+# 4. Press 't' while running to cycle through themes interactively
 # 5. Press 'd' while running to toggle between light and dark modes
+# 6. Press 's' while running to cycle through progress bar styles
 "#;
             
             fs::write(path, config_template)

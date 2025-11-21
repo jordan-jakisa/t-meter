@@ -175,6 +175,9 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app_state: &mu
                                 app_state.input_buffer = app_state.config.bed_time.clone();
                                 app_state.error_message = None;
                             },
+                            KeyCode::Char('?') => {
+                                let _ = open::that("https://github.com/jordan-jakisa/t-meter/blob/main/docs.md");
+                            },
                             _ => {}
                         },
                         InputMode::Help => match key.code {
@@ -243,6 +246,7 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
             "│                                                │",
             "│  [w]     Edit wake up time                     │",
             "│  [b]     Edit bed time                         │",
+            "│  [?]     Open documentation                    │",
             "│                                                │",
             "│  Press [h], [q], or [Esc] to close             │",
             "│                                                │",

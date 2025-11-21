@@ -107,6 +107,7 @@ t-meter
 -   `q` or `Ctrl+c` - Quit the application
 -   `t` - Cycle through available themes
 -   `d` - Toggle between light and dark mode
+-   `?` - Open documentation
 
 ## Themes
 
@@ -117,6 +118,7 @@ t-meter
 -   **forest** - Natural green and earth colors
 -   **sunset** - Warm orange and pink hues
 -   **monochrome** - Pure grayscale aesthetic
+-   **contrast** - High contrast (Black/White/Blue/Red/Yellow)
 
 Press `t` while running to cycle through themes, and `d` to toggle between light and dark modes.
 

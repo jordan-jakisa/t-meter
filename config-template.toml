@@ -1,0 +1,36 @@
+# t-meter Configuration File
+# Customize your t-meter experience by editing the values below
+
+# =============================================================================
+# KEYBOARD SHORTCUTS
+# =============================================================================
+# Available keyboard shortcuts while running t-meter:
+#   q or Ctrl+C  - Quit the application
+#   t            - Cycle through available themes
+#   d            - Toggle between light and dark mode
+
+# =============================================================================
+# THEME CONFIGURATION
+# =============================================================================
+
+# Theme name - Choose from the following available themes:
+#   "default"    - Clean monochrome theme with subtle colors
+#   "ocean"      - Calming blue ocean-inspired theme
+#   "forest"     - Natural green forest theme
+#   "sunset"     - Warm orange and red sunset theme
+#   "monochrome" - Pure black and white theme
+theme_name = "default"
+
+# Theme mode - Each theme has two modes:
+#   "light" - Light background optimized theme
+#   "dark"  - Dark background optimized theme
+theme_mode = "light"
+
+# =============================================================================
+# CUSTOMIZATION GUIDE
+# =============================================================================
+# 1. Edit the 'theme_name' value above to one of the available themes
+# 2. Edit the 'theme_mode' value to either 'light' or 'dark'
+# 3. Save this file and restart t-meter to see your changes
+# 4. Press 't' while running to cycle through themes interactively
+# 5. Press 'd' while running to toggle between light and dark modes

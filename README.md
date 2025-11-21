@@ -102,6 +102,45 @@ Simply run:
 t-meter
 ```
 
+### Keybindings
+
+-   `q` or `Ctrl+c` - Quit the application
+-   `t` - Cycle through available themes
+-   `d` - Toggle between light and dark mode
+
+## Themes
+
+**t-meter** comes with 5 beautiful themes, each with light and dark mode variants:
+
+-   **default** - Clean monochrome design (current terminal colors)
+-   **ocean** - Calming blue and teal tones
+-   **forest** - Natural green and earth colors
+-   **sunset** - Warm orange and pink hues
+-   **monochrome** - Pure grayscale aesthetic
+
+Press `t` while running to cycle through themes, and `d` to toggle between light and dark modes.
+
+## Configuration
+
+You can customize **t-meter** by creating a configuration file at:
+
+-   `~/.config/t-meter/config.json` (Linux/macOS)
+-   `~/Library/Application Support/t-meter/config.json` (macOS alternative)
+
+### Example Configuration
+
+```json
+{
+    "theme_name": "ocean",
+    "theme_mode": "dark"
+}
+```
+
+**Available theme names**: `default`, `ocean`, `forest`, `sunset`, `monochrome`  
+**Available modes**: `light`, `dark`
+
+See [config.example.json](config.example.json) for a basic example or [config.detailed.json](config.detailed.json) for more details.
+
 When you're done, just press `q` or `Ctrl+c`.
 
 Enjoy your day! 🌱

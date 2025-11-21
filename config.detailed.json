@@ -1,0 +1,8 @@
+{
+  "_comment": "t-meter Configuration File",
+  "_available_themes": ["default", "ocean", "forest", "sunset", "monochrome"],
+  "_available_modes": ["light", "dark"],
+  
+  "theme_name": "ocean",
+  "theme_mode": "dark"
+}

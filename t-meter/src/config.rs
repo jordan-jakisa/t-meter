@@ -44,6 +44,15 @@ pub struct Config {
 
     #[serde(default = "default_bed_time")]
     pub bed_time: String,
+
+    #[serde(default)]
+    pub markers: Vec<MarkerConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarkerConfig {
+    pub label: String,
+    pub time: String,
 }
 
 fn default_theme_name() -> String {
@@ -70,6 +79,7 @@ impl Default for Config {
             progress_bar_style: ProgressBarStyle::default(),
             wake_up_time: default_wake_up_time(),
             bed_time: default_bed_time(),
+            markers: Vec::new(),
         }
     }
 }

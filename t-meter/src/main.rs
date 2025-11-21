@@ -416,11 +416,19 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
         format!("{:02}:{:02}", app_state.get_bed_seconds()/3600, (app_state.get_bed_seconds()%3600)/60)
     };
 
-    let markers = vec![
-        (app_state.get_wake_up_seconds(), wake_time_display, "Wake Up [w]", wake_style),
-        (12 * 3600, "12:00".to_string(), "Noon", Style::default().fg(colors.marker)),
-        (app_state.get_bed_seconds(), bed_time_display, "Sleep [b]", bed_style),
+    let mut markers: Vec<(u32, String, String, Style)> = vec![
+        (app_state.get_wake_up_seconds(), wake_time_display, "Wake Up [w]".to_string(), wake_style),
+        (12 * 3600, "12:00".to_string(), "Noon".to_string(), Style::default().fg(colors.marker)),
+        (app_state.get_bed_seconds(), bed_time_display, "Sleep [b]".to_string(), bed_style),
     ];
+
+    // Add custom markers
+    for marker in &app_state.config.markers {
+        let seconds = parse_time(&marker.time);
+        if seconds > 0 {
+            markers.push((seconds, marker.time.clone(), marker.label.clone(), Style::default().fg(colors.marker)));
+        }
+    }
 
     // We need to render markers manually to support different styles per marker
     // But since we are using a single string for the line, we can't easily mix styles in the Paragraph for a single line without using Spans.

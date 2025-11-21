@@ -1,6 +1,6 @@
 # t-meter
 
-![t-meter UI](assets/ui_preview.png)
+![t-meter UI](assets/default.png)
 
 ## Hey there! 👋
 
@@ -119,6 +119,18 @@ t-meter
 -   **monochrome** - Pure grayscale aesthetic
 
 Press `t` while running to cycle through themes, and `d` to toggle between light and dark modes.
+
+### Ocean
+
+![Ocean Theme](assets/ocean.png)
+
+### Forest
+
+![Forest Theme](assets/forest.png)
+
+### Sunset
+
+![Sunset Theme](assets/sunset.png)
 
 ## Configuration
 

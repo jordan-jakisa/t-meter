@@ -24,7 +24,7 @@ impl ProgressBarStyle {
 
 impl Default for ProgressBarStyle {
     fn default() -> Self {
-        ProgressBarStyle::Gradient
+        ProgressBarStyle::Analog
     }
 }
 

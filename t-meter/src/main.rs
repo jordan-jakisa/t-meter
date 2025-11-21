@@ -7,7 +7,7 @@ use crossterm::{
 };
 use ratatui::{
     prelude::*,
-    widgets::Paragraph,
+    widgets::{Paragraph, List, ListItem, Block, Borders},
 };
 use std::io;
 
@@ -27,6 +27,22 @@ struct AppState {
     input_mode: InputMode,
     input_buffer: String,
     error_message: Option<String>,
+    marker_edit: MarkerEditState,
+}
+
+#[derive(Debug, Clone)]
+struct MarkerEditState {
+    selected: usize,
+    is_editing: bool,  // Whether we're in edit mode
+    editing_field: EditField,  // Which field is active
+    time_buffer: String,
+    label_buffer: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum EditField {
+    Time,
+    Label,
 }
 
 #[derive(PartialEq)]
@@ -35,6 +51,7 @@ enum InputMode {
     EditingWakeUp,
     EditingBedTime,
     Help,
+    EditingMarkers,
 }
 
 impl AppState {
@@ -124,6 +141,13 @@ fn main() -> Result<()> {
         input_mode: InputMode::Normal,
         input_buffer: String::new(),
         error_message: None,
+        marker_edit: MarkerEditState {
+            selected: 0,
+            is_editing: false,
+            editing_field: EditField::Time,
+            time_buffer: String::new(),
+            label_buffer: String::new(),
+        },
     };
     
     // Setup terminal
@@ -165,6 +189,10 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app_state: &mu
                             KeyCode::Char('h') => {
                                 app_state.input_mode = InputMode::Help;
                             },
+                            KeyCode::Char('m') => {
+                                // Toggle marker editor
+                                app_state.input_mode = InputMode::EditingMarkers;
+                            },
                             KeyCode::Char('w') => {
                                 app_state.input_mode = InputMode::EditingWakeUp;
                                 app_state.input_buffer = app_state.config.wake_up_time.clone();
@@ -183,6 +211,155 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app_state: &mu
                         InputMode::Help => match key.code {
                             KeyCode::Esc | KeyCode::Char('h') | KeyCode::Char('q') => {
                                 app_state.input_mode = InputMode::Normal;
+                            },
+                            _ => {}
+                        },
+                        InputMode::EditingMarkers => match key.code {
+                            KeyCode::Esc => {
+                                if app_state.marker_edit.is_editing {
+                                    // Cancel editing
+                                    app_state.marker_edit.is_editing = false;
+                                    app_state.marker_edit.time_buffer.clear();
+                                    app_state.marker_edit.label_buffer.clear();
+                                    app_state.error_message = None;
+                                } else {
+                                    // Exit marker editor
+                                    app_state.input_mode = InputMode::Normal;
+                                }
+                            },
+                            KeyCode::Char('a') => {
+                                if !app_state.marker_edit.is_editing {
+                                    // Add a new marker and enter edit mode
+                                    app_state.config.markers.push(config::MarkerConfig { time: "12:00".to_string(), label: None });
+                                    app_state.marker_edit.selected = app_state.config.markers.len() - 1;
+                                    app_state.marker_edit.is_editing = true;
+                                    app_state.marker_edit.editing_field = EditField::Time;
+                                    app_state.marker_edit.time_buffer = "12:00".to_string();
+                                    app_state.marker_edit.label_buffer = "".to_string();
+                                    app_state.error_message = None;
+                                }
+                            },
+                            KeyCode::Char('d') => {
+                                if !app_state.marker_edit.is_editing && !app_state.config.markers.is_empty() {
+                                    let idx = app_state.marker_edit.selected.min(app_state.config.markers.len() - 1);
+                                    app_state.config.markers.remove(idx);
+                                    if app_state.marker_edit.selected > 0 && app_state.marker_edit.selected >= app_state.config.markers.len() {
+                                        app_state.marker_edit.selected = app_state.config.markers.len().saturating_sub(1);
+                                    }
+                                    let _ = app_state.config.save();
+                                }
+                            },
+                            KeyCode::Up => {
+                                if !app_state.marker_edit.is_editing && app_state.marker_edit.selected > 0 {
+                                    app_state.marker_edit.selected -= 1;
+                                }
+                            },
+                            KeyCode::Down => {
+                                if !app_state.marker_edit.is_editing && app_state.marker_edit.selected + 1 < app_state.config.markers.len() {
+                                    app_state.marker_edit.selected += 1;
+                                }
+                            },
+                            KeyCode::Enter => {
+                                if app_state.marker_edit.is_editing {
+                                    // Save the current edit
+                                    if app_state.marker_edit.editing_field == EditField::Time {
+                                        // Validate time
+                                        if let Ok(_) = validate_time(&app_state.marker_edit.time_buffer) {
+                                            if let Some(marker) = app_state.config.markers.get_mut(app_state.marker_edit.selected) {
+                                                marker.time = app_state.marker_edit.time_buffer.clone();
+                                            }
+                                            app_state.error_message = None;
+                                            // Move to label field
+                                            app_state.marker_edit.editing_field = EditField::Label;
+                                            if let Some(marker) = app_state.config.markers.get(app_state.marker_edit.selected) {
+                                                app_state.marker_edit.label_buffer = marker.label.clone().unwrap_or_default();
+                                            }
+                                        } else {
+                                            app_state.error_message = Some("Invalid time format (use HH:MM)".to_string());
+                                        }
+                                    } else {
+                                        // Save label and exit edit mode
+                                        if let Some(marker) = app_state.config.markers.get_mut(app_state.marker_edit.selected) {
+                                            marker.label = if app_state.marker_edit.label_buffer.is_empty() {
+                                                None
+                                            } else {
+                                                Some(app_state.marker_edit.label_buffer.clone())
+                                            };
+                                        }
+                                        let _ = app_state.config.save();
+                                        app_state.marker_edit.is_editing = false;
+                                        app_state.marker_edit.time_buffer.clear();
+                                        app_state.marker_edit.label_buffer.clear();
+                                        app_state.error_message = None;
+                                    }
+                                } else {
+                                    // Start editing the selected marker
+                                    if !app_state.config.markers.is_empty() {
+                                        if let Some(marker) = app_state.config.markers.get(app_state.marker_edit.selected) {
+                                            app_state.marker_edit.is_editing = true;
+                                            app_state.marker_edit.editing_field = EditField::Time;
+                                            app_state.marker_edit.time_buffer = marker.time.clone();
+                                            app_state.marker_edit.label_buffer = marker.label.clone().unwrap_or_default();
+                                            app_state.error_message = None;
+                                        }
+                                    }
+                                }
+                            },
+                            KeyCode::Tab => {
+                                if app_state.marker_edit.is_editing {
+                                    // Switch between time and label fields
+                                    app_state.marker_edit.editing_field = if app_state.marker_edit.editing_field == EditField::Time {
+                                        // Save time before switching
+                                        if let Ok(_) = validate_time(&app_state.marker_edit.time_buffer) {
+                                            if let Some(marker) = app_state.config.markers.get_mut(app_state.marker_edit.selected) {
+                                                marker.time = app_state.marker_edit.time_buffer.clone();
+                                            }
+                                            if let Some(marker) = app_state.config.markers.get(app_state.marker_edit.selected) {
+                                                app_state.marker_edit.label_buffer = marker.label.clone().unwrap_or_default();
+                                            }
+                                            app_state.error_message = None;
+                                            EditField::Label
+                                        } else {
+                                            app_state.error_message = Some("Invalid time format (use HH:MM)".to_string());
+                                            EditField::Time
+                                        }
+                                    } else {
+                                        // Save label before switching
+                                        if let Some(marker) = app_state.config.markers.get_mut(app_state.marker_edit.selected) {
+                                            marker.label = if app_state.marker_edit.label_buffer.is_empty() {
+                                                None
+                                            } else {
+                                                Some(app_state.marker_edit.label_buffer.clone())
+                                            };
+                                        }
+                                        if let Some(marker) = app_state.config.markers.get(app_state.marker_edit.selected) {
+                                            app_state.marker_edit.time_buffer = marker.time.clone();
+                                        }
+                                        EditField::Time
+                                    };
+                                }
+                            },
+                            KeyCode::Char(c) => {
+                                if app_state.marker_edit.is_editing {
+                                    if app_state.marker_edit.editing_field == EditField::Time {
+                                        if c.is_digit(10) || c == ':' {
+                                            app_state.marker_edit.time_buffer.push(c);
+                                            app_state.error_message = None;
+                                        }
+                                    } else {
+                                        app_state.marker_edit.label_buffer.push(c);
+                                    }
+                                }
+                            },
+                            KeyCode::Backspace => {
+                                if app_state.marker_edit.is_editing {
+                                    if app_state.marker_edit.editing_field == EditField::Time {
+                                        app_state.marker_edit.time_buffer.pop();
+                                        app_state.error_message = None;
+                                    } else {
+                                        app_state.marker_edit.label_buffer.pop();
+                                    }
+                                }
                             },
                             _ => {}
                         },
@@ -243,6 +420,7 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
             "│  [t]     Cycle themes                          │",
             "│  [d]     Toggle dark/light mode                │",
             "│  [s]     Cycle progress bar style              │",
+            "│  [m]     Edit custom day markers               │",
             "│                                                │",
             "│  [w]     Edit wake up time                     │",
             "│  [b]     Edit bed time                         │",
@@ -258,6 +436,73 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
             .alignment(Alignment::Center);
         
         frame.render_widget(help_paragraph, area);
+        return;
+    }
+
+    // Marker Editing Screen
+    if app_state.input_mode == InputMode::EditingMarkers {
+        let area = frame.area();
+        let title_text = if app_state.marker_edit.is_editing {
+            " Markers - Editing (Tab: switch field, Enter: save, Esc: cancel) "
+        } else {
+            " Markers (↑↓: navigate, a:add, d:delete, Enter:edit, Esc:exit) "
+        };
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(title_text, Style::default().fg(colors.title)));
+        
+        let inner_area = block.inner(area);
+        frame.render_widget(block, area);
+
+        let items: Vec<ListItem> = app_state.config.markers.iter().enumerate().map(|(i, marker)| {
+            let is_selected = i == app_state.marker_edit.selected;
+            let is_editing = is_selected && app_state.marker_edit.is_editing;
+            
+            let time_str = if is_editing {
+                app_state.marker_edit.time_buffer.clone()
+            } else {
+                marker.time.clone()
+            };
+
+            let label_str = if is_editing {
+                app_state.marker_edit.label_buffer.clone()
+            } else {
+                marker.label.clone().unwrap_or_default()
+            };
+
+            // Highlight the active field being edited
+            let display_text = if is_editing {
+                if app_state.marker_edit.editing_field == EditField::Time {
+                    format!("[{}] - {}", time_str, label_str)
+                } else {
+                    format!("{} - [{}]", time_str, label_str)
+                }
+            } else {
+                format!("{} - {}", time_str, if label_str.is_empty() { "(no label)" } else { &label_str })
+            };
+            
+            let mut style = Style::default().fg(colors.foreground);
+            if is_selected {
+                style = style.add_modifier(Modifier::REVERSED);
+            }
+
+            ListItem::new(display_text).style(style)
+        }).collect();
+
+        let list = List::new(items)
+            .block(Block::default())
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            .highlight_symbol(">>");
+
+        frame.render_widget(list, inner_area);
+
+        if let Some(ref error) = app_state.error_message {
+            let error_paragraph = Paragraph::new(format!("❌ Error: {}", error))
+                .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))
+                .alignment(Alignment::Center);
+            let error_area = Rect::new(0, area.height - 1, area.width, 1);
+            frame.render_widget(error_paragraph, error_area);
+        }
         return;
     }
     
@@ -340,6 +585,41 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
         }
     }
 
+    // Markers
+    let mut ticks_chars: Vec<char> = vec![' '; width];
+    let mut times_chars: Vec<char> = vec![' '; width];
+    let mut labels_chars: Vec<char> = vec![' '; width];
+    
+    // Determine styles for editable fields
+    let wake_style = if app_state.input_mode == InputMode::EditingWakeUp {
+        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(colors.marker)
+    };
+    
+    let bed_style = if app_state.input_mode == InputMode::EditingBedTime {
+        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(colors.marker)
+    };
+    
+    // Render custom markers
+    for (i, marker) in app_state.config.markers.iter().enumerate() {
+        if let Ok(sec) = validate_time(&marker.time) {
+            let pos = (sec as f64 / total_seconds as f64 * (width as f64 - 1.0)).round() as usize;
+            if pos < width {
+                ticks_chars[pos] = '│';
+                // Place label if available (first char of label)
+                if let Some(lbl) = &marker.label {
+                    let bytes = lbl.as_bytes();
+                    if !bytes.is_empty() {
+                        labels_chars[pos] = bytes[0] as char;
+                    }
+                }
+            }
+        }
+    }
+        
     for i in 0..width {
         
         // Determine base style
@@ -377,6 +657,8 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
             spans.push(Span::styled("┃", Style::default().fg(colors.progress_indicator).add_modifier(Modifier::BOLD)));
         } else if i == wake_pos || i == bed_pos {
             spans.push(Span::styled("│", Style::default().fg(colors.marker).add_modifier(Modifier::BOLD)));
+        } else if ticks_chars[i] != ' ' {
+            spans.push(Span::styled(ticks_chars[i].to_string(), Style::default().fg(colors.marker).add_modifier(Modifier::BOLD)));
         } else {
             spans.push(Span::styled(char_str, style));
         }
@@ -385,24 +667,6 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
     let line = Line::from(spans);
     let bar_paragraph = Paragraph::new(vec![line.clone(), line.clone(), line.clone(), line]);
     frame.render_widget(bar_paragraph, layout[4]);
-
-    // Markers
-    let mut ticks_chars: Vec<char> = vec![' '; width];
-    let mut times_chars: Vec<char> = vec![' '; width];
-    let mut labels_chars: Vec<char> = vec![' '; width];
-
-    // Determine styles for editable fields
-    let wake_style = if app_state.input_mode == InputMode::EditingWakeUp {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(colors.marker)
-    };
-
-    let bed_style = if app_state.input_mode == InputMode::EditingBedTime {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(colors.marker)
-    };
 
     let wake_time_display = if app_state.input_mode == InputMode::EditingWakeUp {
         app_state.input_buffer.clone()
@@ -426,7 +690,7 @@ fn ui(frame: &mut Frame, app_state: &AppState) {
     for marker in &app_state.config.markers {
         let seconds = parse_time(&marker.time);
         if seconds > 0 {
-            markers.push((seconds, marker.time.clone(), marker.label.clone(), Style::default().fg(colors.marker)));
+            markers.push((seconds, marker.time.clone(), marker.label.clone().unwrap_or_default(), Style::default().fg(colors.marker)));
         }
     }
 

@@ -51,7 +51,7 @@ pub struct Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarkerConfig {
-    pub label: String,
+    pub label: Option<String>,
     pub time: String,
 }
 

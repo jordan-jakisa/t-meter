@@ -5,27 +5,12 @@ on:
         tags:
             - "v*"
 
-jobs:
-    create-release:
-        name: Create Release
-        runs-on: ubuntu-latest
-        outputs:
-            upload_url: ${{ steps.create_release.outputs.upload_url }}
-        steps:
-            - name: Create Release
-              id: create_release
-              uses: actions/create-release@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  tag_name: ${{ github.ref }}
-                  release_name: Release ${{ github.ref }}
-                  draft: false
-                  prerelease: false
+permissions:
+    contents: write
 
+jobs:
     build:
         name: Build ${{ matrix.platform.target }}
-        needs: create-release
         runs-on: ${{ matrix.platform.os }}
         strategy:
             matrix:
@@ -90,22 +75,11 @@ jobs:
                   fi
               shell: bash
 
-            - name: Upload Release Asset
-              uses: actions/upload-release-asset@v1
+            - name: Upload Release Assets
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: |
+                      ${{ matrix.platform.name }}
+                      ${{ matrix.platform.name }}.sha256
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  upload_url: ${{ needs.create-release.outputs.upload_url }}
-                  asset_path: ./${{ matrix.platform.name }}
-                  asset_name: ${{ matrix.platform.name }}
-                  asset_content_type: application/octet-stream
-
-            - name: Upload SHA256
-              uses: actions/upload-release-asset@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  upload_url: ${{ needs.create-release.outputs.upload_url }}
-                  asset_path: ./${{ matrix.platform.name }}.sha256
-                  asset_name: ${{ matrix.platform.name }}.sha256
-                  asset_content_type: text/plain
